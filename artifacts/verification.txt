@@ -1,0 +1,43 @@
+test_fem_assembly_and_full_graph_against_numpy (test_waveguide.WaveguideTests) ... ok
+test_lossless_discrete_energy (test_waveguide.WaveguideTests) ... ok
+test_mesh_resolution_and_conformity (test_waveguide.WaveguideTests) ... ok
+test_original_host_mesher_accepts_nonpreset_resolution (test_waveguide.WaveguideTests) ... ok
+test_physical_metrics_on_analytic_pulses (test_waveguide.WaveguideTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 8.538s
+
+OK
+Warp 1.15.0 initialized:
+   CUDA Toolkit 12.9, Driver 12.8
+   Devices:
+     "cpu"      : "x86_64"
+     "cuda:0"   : "NVIDIA L40" (47 GiB, sm_89, mempool enabled)
+   Kernel cache:
+     /home/horde/.cache/warp/1.15.0
+Module warp.fem.utils 21e5a09 load on device 'cuda:0' took 7.28 ms  (cached)
+Module warp.fem.geometry.trimesh e9192b6 load on device 'cuda:0' took 0.50 ms  (cached)
+Module warp.fem.geometry.trimesh 92b3068 load on device 'cuda:0' took 0.45 ms  (cached)
+Module warp.fem.space.trimesh_function_space d2d78a1 load on device 'cuda:0' took 0.36 ms  (cached)
+Module warp._src.fem.space.restriction.dyn.fill_element_node_indices_eb7df8e2 eb857ad load on device 'cuda:0' took 0.34 ms  (cached)
+Module warp.fem.space.restriction 6ca1790 load on device 'cuda:0' took 0.33 ms  (cached)
+Module warp._src.fem.space.restriction.dyn.fill_element_node_indices_6a48f6fd 630b3bd load on device 'cuda:0' took 0.34 ms  (cached)
+Module warp_waveguide.mass_form_a0fb1644 2b13b37 load on device 'cuda:0' took 0.40 ms  (cached)
+Module warp._src.fem.field.virtual.dyn.dispatch_linear_kernel_fn_19857cce 083a2af load on device 'cuda:0' took 0.35 ms  (cached)
+Module warp_waveguide.volume_form_44178057 3edcf17 load on device 'cuda:0' took 0.35 ms  (cached)
+Module warp._src.fem.field.virtual.dyn.dispatch_linear_kernel_fn_a3823458 1a89834 load on device 'cuda:0' took 0.33 ms  (cached)
+Module warp_waveguide.derivative_form_3dcca0a3 2f4d637 load on device 'cuda:0' took 0.36 ms  (cached)
+Module warp._src.fem.field.virtual.dyn.dispatch_bilinear_kernel_fn_ad319d95 7e80617 load on device 'cuda:0' took 0.42 ms  (cached)
+Module _bsr_accumulate_triplet_values_af769a3c 5a4572f load on device 'cuda:0' took 0.99 ms  (cached)
+Module _bsr_transpose_values_8bac3a1d 8140259 load on device 'cuda:0' took 0.36 ms  (cached)
+Module warp_waveguide 60f80f0 load on device 'cuda:0' took 0.45 ms  (cached)
+graph vs independent float64 NumPy relative error: 9.60895541486786e-06
+graph vs independent float64 NumPy relative error: 1.0574656707540292e-05
+graph vs independent float64 NumPy relative error: 6.049837170279921e-06
+lossless modified-energy relative drift: 1.0376395e-07
+
+Additional completed checks:
+- Optimized host classification produces bitwise-identical vertices, triangles, and material labels at 20 nm and 7 nm.
+- Saved-mesh reuse plus frame capture changes beta, modal transmission, total guided transmission, and arrival delay by less than 1e-9.
+- The MP4 decodes in full with ffmpeg without errors.
+- Python compilation and git diff --check pass.

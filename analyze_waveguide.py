@@ -1,6 +1,7 @@
 """Post-run physical measurements; no host analysis occurs during propagation."""
 import numpy as np
 from scipy.signal import hilbert
+from scipy.integrate import trapezoid
 from fiber_pulse import C0, Z0
 
 
@@ -25,16 +26,16 @@ def metrics(t,trace,ports,mode,ng,center,run,modes=None,norms=None):
     arrivals = np.sum(t[:,None]*env2,axis=0)/np.sum(env2,axis=0)
     # Main input/output monitors: x=4.6 and x=14.5 um.
     ip,op = 3,len(ports)-1
-    ein = np.trapz(forward[:,ip]**2,t)
-    eout = np.trapz(forward[:,op]**2,t)
-    back = np.trapz(backward[:,ip]**2,t)
+    ein = trapezoid(forward[:,ip]**2,t)
+    eout = trapezoid(forward[:,op]**2,t)
+    back = trapezoid(backward[:,ip]**2,t)
     path = np.linalg.norm(np.diff(center,axis=0),axis=1)
     s = np.r_[0,np.cumsum(path)]
     length = np.interp(ports[op],center[:,0],s)-np.interp(ports[ip],center[:,0],s)
     expected_delay = length*ng*1e9/C0
     delay = arrivals[op]-arrivals[ip]
-    flux = np.trapz(trace[:,:,2],t,axis=0)*1e-15*1e-6*1e12/Z0
-    guided_flux = np.trapz(trace[:,:,3],t,axis=0)*1e-15*1e-6*1e12/Z0
+    flux = trapezoid(trace[:,:,2],t,axis=0)*1e-15*1e-6*1e12/Z0
+    guided_flux = trapezoid(trace[:,:,3],t,axis=0)*1e-15*1e-6*1e12/Z0
     power = trace[:,:,2]*1e-6*1e12/Z0
     result = dict(beta_per_um=float(beta),beta_relative_error=float((beta/mode['beta'])-1),
                 beta_phase_fit_rms_rad=float(residual_rms),
@@ -57,9 +58,10 @@ def metrics(t,trace,ports,mode,ng,center,run,modes=None,norms=None):
         for i,md in enumerate(modes[1:]):
             j = len(ports)+2*i
             a = 0.5*(all_trace[:,j:j+2,0]-all_trace[:,j:j+2,1]/md['neff'])
-            energy = np.trapz(a*a,t,axis=0)*md['neff']*norms[j:j+2]/(ein*mode['neff']*norms[ip])
+            energy = trapezoid(a*a,t,axis=0)*md['neff']*norms[j:j+2]/(ein*mode['neff']*norms[ip])
             modal_in.append(float(energy[0]))
             modal_out.append(float(energy[1]))
         result.update(mode_transmissions=modal_out,input_mode_energy_ratios=modal_in,
-                      total_guided_transmission=float(sum(modal_out)))
+                      guided_output_to_input_te0=float(sum(modal_out)),
+                      total_guided_transmission=float(sum(modal_out)/sum(modal_in)))
     return result

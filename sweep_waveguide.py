@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Reproducible serial GPU resolution and parameter studies (no timing contention)."""
 import argparse
-from dataclasses import replace
 import gc
 import json
 from pathlib import Path
@@ -34,8 +33,8 @@ def cases(study):
         for h in [0.015,0.01,0.007,0.005]:
             yield f'bend_h{round(h*1000):03d}_r4',MeshConfig(h=h,clad_ratio=4),RunConfig(duration_fs=240,graph_unroll=16)
     elif study=='graph':
-        for unroll in [1,4,16,64]:
-            yield f'unroll_{unroll}',MeshConfig(h=0.02),RunConfig(duration_fs=240,graph_unroll=unroll)
+        for unroll in [0,1,4,16,64]:
+            yield f'unroll_{unroll}',MeshConfig(h=0.02),RunConfig(duration_fs=240,graph=unroll>0,graph_unroll=max(1,unroll))
 
 
 def main():

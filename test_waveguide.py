@@ -18,7 +18,8 @@ class WaveguideTests(unittest.TestCase):
         for h in [0.12,0.071,0.04]:
             m = build(MeshConfig(h=h))
             v,f = m['v'],m['f']
-            area = np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]])/2
+            a,b = v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]]
+            area = (a[:,0]*b[:,1]-a[:,1]*b[:,0])/2
             self.assertTrue(np.all(area>0))
             self.assertAlmostEqual(area.sum(),18*8,places=9)
             self.assertLess(area.max(),0.5*(2*h)**2*(1+1e-8))
@@ -45,11 +46,43 @@ class WaveguideTests(unittest.TestCase):
         for h in [0.08e-6,0.047e-6]:
             v,f,core = build_mesh(outline,lx,h,2*h)
             self.assertTrue(core.any())
-            area = np.abs(np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]]))/2
+            a,b = v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]]
+            area = np.abs(a[:,0]*b[:,1]-a[:,1]*b[:,0])/2
             self.assertAlmostEqual(area.sum(),1.,places=10)
             self.assertLessEqual(area.max(),0.5*(2*h/lx)**2*(1+1e-8))
             counts.append(len(f))
         self.assertGreater(counts[1],counts[0])
+
+    def test_physical_metrics_on_analytic_pulses(self):
+        from analyze_waveguide import metrics
+        from warp_waveguide import mode_data
+        from fiber_pulse import slab_mode
+        c,r = MeshConfig(bend=0),RunConfig()
+        md,ng = mode_data(c,r)
+        omega = 2*np.pi/r.wavelength_um
+        modes = [slab_mode(omega,c.width,2.04,1.46,i) for i in range(3)]
+        ports = np.r_[np.arange(4,5.61,0.2),14.5]
+        t = np.arange(0,170,0.06)
+        arrival = 20+ports*ng*TIME_FS
+        signal = np.exp(-0.5*((t[:,None]-arrival)/4)**2)*np.cos(omega*t[:,None]/TIME_FS-md['beta']*ports)
+        trace = np.zeros((len(t),14,4))
+        trace[:,:10,0] = signal
+        trace[:,9,0] *= np.sqrt(0.6)
+        trace[:,:10,1] = -md['neff']*trace[:,:10,0]
+        trace[:,10,0] = 0.1*signal[:,3]
+        trace[:,11,0] = np.sqrt(0.2*md['neff']/modes[1]['neff'])*signal[:,9]
+        trace[:,10:12,1] = -modes[1]['neff']*trace[:,10:12,0]
+        trace[:,:10,2] = md['neff']*trace[:,:10,0]**2
+        trace[:,3,2] += modes[1]['neff']*trace[:,10,0]**2
+        trace[:,9,2] += modes[1]['neff']*trace[:,11,0]**2
+        trace[:,:,3] = trace[:,:,2]
+        result = metrics(t,trace,ports,md,ng,np.array([[0,3],[18,3]]),r,modes,np.ones(14))
+        self.assertLess(abs(result['beta_relative_error']),1e-9)
+        self.assertAlmostEqual(result['modal_transmission'],0.6,places=9)
+        expected = 0.8/(1+0.01*modes[1]['neff']/md['neff'])
+        self.assertAlmostEqual(result['total_guided_transmission'],expected,places=9)
+        self.assertAlmostEqual(result['net_flux_transmission'],expected,places=9)
+        self.assertLess(abs(result['delay_relative_error']),1e-8)
 
     @unittest.skipUnless(wp.is_cuda_available(), 'CUDA required')
     def test_fem_assembly_and_full_graph_against_numpy(self):

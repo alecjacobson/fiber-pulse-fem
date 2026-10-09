@@ -17,7 +17,7 @@ import warp as wp
 import warp.fem as fem
 from warp.sparse import bsr_transposed
 from fiber_pulse import C0, Z0, slab_mode, mode_profile
-from mesh_waveguide import MeshConfig, build, operators
+from mesh_waveguide import MeshConfig, build, operators, cross2
 
 wp.set_module_options({'enable_backward': False})
 TIME_FS = 1e9/C0
@@ -178,9 +178,9 @@ def barycentric(v, f, ids, p):
     b = tri[:,1]-tri[:,0]
     c = tri[:,2]-tri[:,0]
     d = p-tri[:,0]
-    det = np.cross(b,c)
-    w1 = np.cross(d,c)/det
-    w2 = np.cross(b,d)/det
+    det = cross2(b,c)
+    w1 = cross2(d,c)/det
+    w2 = cross2(b,d)/det
     return np.column_stack((1-w1-w2,w1,w2))
 
 

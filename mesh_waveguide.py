@@ -10,6 +10,11 @@ import numpy as np
 from fiber_pulse import spline_offset, spline_to_poly, subdivide_loop, cubic_eval
 
 
+def cross2(a,b):
+    """Vectorized signed 2D cross product (NumPy 2 compatible)."""
+    return a[...,0]*b[...,1]-a[...,1]*b[...,0]
+
+
 @dataclass
 class MeshConfig:
     h: float = 0.04
@@ -73,7 +78,7 @@ def build(c: MeshConfig):
     v,f = igl.triangle.triangulate(np.vstack([rv,*points,corners]), re,
              flags=f'Qcq30a{0.5*(c.h*c.clad_ratio)**2:.16f}')[:2]
     f = np.asarray(f,dtype=np.int32)
-    cross = np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]])
+    cross = cross2(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]])
     flip = cross<0
     f[flip] = f[flip][:,[0,2,1]]
     # Classification uses the identical, un-subdivided polygon: using thousands
@@ -108,7 +113,7 @@ def operators(mesh):
     """Independent double-precision host operators for CFL bounds and validation."""
     v,f = mesh['v'],mesh['f']
     p = v[f]
-    area = np.cross(p[:,1]-p[:,0],p[:,2]-p[:,0])/2
+    area = cross2(p[:,1]-p[:,0],p[:,2]-p[:,0])/2
     grad = np.stack((p[:,[1,2,0],1]-p[:,[2,0,1],1],
                      p[:,[2,0,1],0]-p[:,[1,2,0],0]),axis=-1)/(2*area[:,None,None])
     eps = np.where(mesh['core'],2.04**2,1.46**2)

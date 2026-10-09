@@ -98,8 +98,10 @@ def plots(root,out):
     axs[0,1].semilogx(h,[r['net_flux_transmission'] for r in straight],'s-',label='net flux')
     axs[0,1].axhline(1,color='white',lw=.7,ls=':')
     axs[0,1].set(ylabel='transmission ratio',title='Straight-guide conservation');axs[0,1].legend()
+    bend=[r for r in bend if r['tail_fraction']<1e-3]
     hb=np.array([r['mesh']['h']*1000 for r in bend])
     axs[0,2].semilogx(hb,[r['modal_loss_db'] for r in bend],'o-',label='TE₀ insertion loss')
+    axs[0,2].semilogx(hb,[-10*np.log10(r['total_guided_transmission']) for r in bend],'^-',label='all guided modes')
     axs[0,2].semilogx(hb,[-10*np.log10(r['net_flux_transmission']) for r in bend],'s-',label='net-flux loss')
     axs[0,2].set(ylabel='loss [dB]',title='Bent-guide loss trends');axs[0,2].legend()
     for key,label,marker in [('modal_transmission','TE₀ transmission','o'),('delay_fs','arrival delay','s'),
@@ -108,14 +110,13 @@ def plots(root,out):
         axs[1,0].loglog(hb[1:],np.maximum(errors,1e-6),marker+'-',label=label)
     axs[1,0].set(ylabel='difference from finest run [%]',title=f'Bend reference: {rb["mesh"]["h"]*1000:g} nm');axs[1,0].legend()
     axs[1,1].loglog(hb,[r['gpu_seconds'] for r in bend],'o-',label='GPU trajectory')
-    axs[1,1].loglog(hb,[r['mesh_seconds']+r['setup_seconds']+r['wall_seconds'] for r in bend],'s-',label='mesh + setup + trajectory')
-    axs[1,1].set(ylabel='seconds on NVIDIA L40',title='Wall-clock cost (excludes output)');axs[1,1].legend()
+    axs[1,1].set(ylabel='seconds on NVIDIA L40',title='Trajectory cost (setup/output excluded)');axs[1,1].legend()
     axs[1,2].semilogx(hb,[r['delay_fs'] for r in bend],'o-',label='measured TE₀ centroid delay')
     axs[1,2].axhline(rb['geometric_delay_fs'],color='white',ls=':',label='geometric ng L/c estimate')
     axs[1,2].set(ylabel='input-to-output delay [fs]',title='Bend arrival time');axs[1,2].legend(fontsize=8)
     for ax in axs.ravel():
         ax.set_xlabel('near-guide spacing [nm]');ax.grid(alpha=.25)
-    fig.suptitle('Mesh convergence · P1/P0 Maxwell FEM · 240 fs trajectory',fontsize=16)
+    fig.suptitle('Mesh convergence · P1/P0 Maxwell FEM · coarse 80 nm bend has an unresolved tail',fontsize=14)
     fig.savefig(out/'convergence.png',dpi=160);plt.close(fig)
     if (root/'parameters.json').exists():
         pars=json.loads((root/'parameters.json').read_text())
@@ -132,6 +133,37 @@ def plots(root,out):
             ax.legend(loc='upper left',fontsize=8)
         fig.suptitle('Parameter study at 20 nm · dotted gold curves show runtime',fontsize=14)
         fig.savefig(out/'parameters.png',dpi=160);plt.close(fig)
+    if (root/'optimized.json').exists():
+        opt=json.loads((root/'optimized.json').read_text())
+        fig,axs=plt.subplots(1,3,figsize=(14,4.5),layout='constrained')
+        for rs,label,color in [(bend,'baseline: clad ratio 2, unroll 1','#33c5ff'),
+                               (opt,'optimized: clad ratio 4, unroll 16','#ffbe45')]:
+            gpu=[r['gpu_seconds'] for r in rs]
+            axs[0].loglog(gpu,[abs(r['beta_relative_error'])*100 for r in rs],'o-',label=label,color=color)
+            compared=[r for r in rs if r is not rb]
+            gpu_compared=[r['gpu_seconds'] for r in compared]
+            axs[1].loglog(gpu_compared,[abs(r['total_guided_transmission']/rb['total_guided_transmission']-1)*100 for r in compared],'o-',color=color)
+            axs[2].loglog(gpu_compared,[abs(r['delay_fs']/rb['delay_fs']-1)*100 for r in compared],'o-',color=color)
+            for r in rs:
+                if r['mesh']['h']<=0.02:
+                    axs[0].annotate(f"{r['mesh']['h']*1000:g} nm",(r['gpu_seconds'],abs(r['beta_relative_error'])*100),
+                                    xytext=(4,4),textcoords='offset points',fontsize=8)
+        axs[0].set_ylabel('phase error vs analytic slab [%]')
+        axs[1].set_ylabel('guided transmission difference [%]')
+        axs[2].set_ylabel('arrival delay difference [%]')
+        axs[0].legend(fontsize=8)
+        for ax in axs:
+            ax.set_xlabel('GPU trajectory [s]');ax.grid(alpha=.25)
+        fig.suptitle('Accuracy vs execution time · bend differences use the 5 nm reference',fontsize=14)
+        fig.savefig(out/'performance.png',dpi=160);plt.close(fig)
+    if (root/'graph.json').exists():
+        rs=json.loads((root/'graph.json').read_text())
+        fig,ax=plt.subplots(figsize=(7,4),layout='constrained')
+        labels=['no graph' if not r['run']['graph'] else str(r['run']['graph_unroll']) for r in rs]
+        ax.bar(labels,[r['gpu_seconds'] for r in rs],color=['#8293a7']+['#33c5ff']*(len(rs)-1))
+        ax.set(xlabel='steps unrolled per device WHILE iteration',ylabel='240 fs trajectory [s]',
+               title='Graph batching at 20 nm; same physics kernels')
+        fig.savefig(out/'graph_batching.png',dpi=160);plt.close(fig)
     print('Plots written',out,flush=True)
 
 
