@@ -14,7 +14,7 @@ def cases(study):
     if study=='resolution':
         for h in [0.08,0.06,0.04,0.03,0.02,0.015,0.01]:
             for bend in [0.,1.5]:
-                yield f"{'straight' if bend==0 else 'bend'}_h{round(h*1000):03d}",MeshConfig(h=h,bend=bend),RunConfig(duration_fs=240)
+                yield f"{'straight' if bend==0 else 'bend'}_h{round(h*1000):03d}",MeshConfig(h=h,bend=bend),RunConfig(duration_fs=480 if h==0.08 else 280 if h==0.06 else 240)
     elif study=='parameters':
         for cfl in [0.3,0.6,0.85,0.98]:
             yield f'cfl_{cfl}',MeshConfig(h=0.02),RunConfig(cfl=cfl,duration_fs=240)

@@ -54,6 +54,7 @@ def build(c: MeshConfig):
     t = time.perf_counter()
     outline, center = geometry(c)
     rv, re = subdivide_loop(outline, c.h)
+    oe = np.column_stack((np.arange(len(outline)),np.roll(np.arange(len(outline)),-1)))
     # Fine lattice throughout the core and its evanescent halo. Two geometric
     # transition bands prevent an abrupt jump to the coarser radiation region.
     points = []
@@ -66,7 +67,7 @@ def build(c: MeshConfig):
         q = np.column_stack((X.ravel(),Y.ravel()))
         dist = np.abs(q[:,1]-np.interp(q[:,0],center[:,0],center[:,1]))
         q = q[(dist>=lo)&(dist<hi)&(q[:,0]<c.length-spacing/4)]
-        d2 = igl.point_mesh_squared_distance(q,rv,re)[0]
+        d2 = igl.point_mesh_squared_distance(q,outline,oe)[0]
         points.append(q[d2>(0.38*spacing)**2])
     corners = np.array([[0,0],[c.length,0],[c.length,c.height],[0,c.height]])
     v,f = igl.triangle.triangulate(np.vstack([rv,*points,corners]), re,
@@ -75,7 +76,9 @@ def build(c: MeshConfig):
     cross = np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]])
     flip = cross<0
     f[flip] = f[flip][:,[0,2,1]]
-    core = np.abs(igl.winding_number(rv,re,v[f].mean(axis=1)))>0.5
+    # Classification uses the identical, un-subdivided polygon: using thousands
+    # of collinear boundary subdivisions here needlessly makes meshing O(h^-3).
+    core = np.abs(igl.winding_number(outline,oe,v[f].mean(axis=1)))>0.5
     # Every constrained core-outline segment must survive as a union of mesh edges.
     # Triangle preserves the PSLG; material jumps are assigned to whole elements.
     return dict(v=v, f=f, core=core, outline=outline, center=center,

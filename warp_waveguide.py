@@ -9,6 +9,7 @@ contains the ENTIRE trajectory, including a device-side step counter.
 import argparse
 from dataclasses import dataclass, asdict
 import json
+import hashlib
 from pathlib import Path
 import time
 import numpy as np
@@ -141,7 +142,7 @@ def increment(step: wp.array(dtype=int), condition: wp.array(dtype=int), nsteps:
 @dataclass
 class RunConfig:
     cfl: float = 0.85
-    duration_fs: float = 160.0
+    duration_fs: float = 240.0
     sigma_fs: float = 4.0
     wavelength_um: float = 0.532
     source_x: float = 2.5
@@ -186,7 +187,8 @@ def port_quadrature(mesh, ports, md):
     tri = v[f]
     ids,weights,qw,norm,offsets = [],[],[],[],[0]
     gauss,gw = np.polynomial.legendre.leggauss(3)
-    for x in ports:
+    modes = md if isinstance(md,list) else [md]*len(ports)
+    for x,mode in zip(ports,modes):
         sel = np.flatnonzero((tri[:,:,0].min(axis=1)<x)&(tri[:,:,0].max(axis=1)>x))
         t = tri[sel]
         lo = np.full(len(sel),np.inf)
@@ -202,7 +204,7 @@ def port_quadrature(mesh, ports, md):
         linew = ((hi-lo)[:,None]/2*gw).ravel()
         ti = np.repeat(sel,3)
         q = ys-mesh['config']['y0']
-        psi,_ = mode_profile(q,md)
+        psi,_ = mode_profile(q,mode)
         ids.extend(ti)
         weights.extend(barycentric(v,f,ti,np.column_stack((np.full(len(ys),x),ys))))
         qw.extend(np.column_stack((linew*psi,linew,linew*(np.abs(q)<0.9))))
@@ -224,10 +226,13 @@ class Simulator:
         self.omega = 2*np.pi/r.wavelength_um
         area,grad,mass,vol,dtlimit = operators(mesh)
         self.dt = r.cfl*dtlimit
+        self.dtlimit = dtlimit
         self.nsteps = int(np.ceil(r.duration_fs/(self.dt*TIME_FS)))
         self.sample_stride = max(1,round(r.sample_fs/(self.dt*TIME_FS)))
         self.frame_stride = max(1,round(r.frame_fs/(self.dt*TIME_FS)))
         self.ports = np.r_[np.arange(4.0,5.61,0.2)+1e-6,14.5+1e-6]
+        self.modes = [slab_mode(self.omega,c.width,2.04,1.46,i)
+                      for i in range(int(np.ceil(2*self.md['V']/np.pi)))]
         self.device = r.device
         self.setup_start = time.perf_counter()
         with wp.ScopedDevice(r.device):
@@ -263,16 +268,18 @@ class Simulator:
             se = source(mesh['v'])
             se[:,0] *= vol
             self.se,self.sh = arr(se,wp.vec2),arr(source(centers),wp.vec2)
-            ids,weights,qw,offsets,norm = port_quadrature(mesh,self.ports,self.md)
+            extra_ports = list(self.ports[[3,-1]])*(len(self.modes)-1)
+            port_modes = [self.md]*len(self.ports)+[md for md in self.modes[1:] for _ in range(2)]
+            ids,weights,qw,offsets,norm = port_quadrature(mesh,list(self.ports)+extra_ports,port_modes)
             self.pids,self.pweights,self.pqw = arr(ids,int),arr(weights,wp.vec3),arr(qw,wp.vec3)
             self.poffsets,self.pnorm = arr(offsets,int),arr(norm)
-            self.trace = wp.zeros(((self.nsteps-1)//self.sample_stride+1,len(self.ports),4))
+            self.trace = wp.zeros(((self.nsteps-1)//self.sample_stride+1,len(norm),4))
             self.frames = None
             if r.frames:
                 import matplotlib.tri as mtri
                 self.extent = [0.05,c.length-0.05,c.y0-1.15,c.y0+c.bend+1.15]
-                x = np.linspace(*self.extent[:2],720)
-                y = np.linspace(*self.extent[2:],170)
+                x = np.linspace(*self.extent[:2],640)
+                y = np.linspace(*self.extent[2:],144)
                 xx,yy = np.meshgrid(x,y)
                 p = np.column_stack((xx.ravel(),yy.ravel()))
                 ids = mtri.Triangulation(*mesh['v'].T,mesh['f']).get_trifinder()(*p.T)
@@ -290,7 +297,7 @@ class Simulator:
                   self.bx.values,self.by.values,self.area,self.ah,self.sh,*common],device=self.device)
         wp.launch(advance_e,len(self.mesh['v']),inputs=[self.e,self.old,self.hx,self.hy,self.tx.offsets,self.tx.columns,self.ty.offsets,self.ty.columns,
                   self.tx.values,self.ty.values,self.mass,self.ae,self.se,*common],device=self.device)
-        wp.launch(sample_ports,len(self.ports),inputs=[self.e,self.old,self.hy,self.f,self.pids,self.pweights,
+        wp.launch(sample_ports,len(self.pnorm),inputs=[self.e,self.old,self.hy,self.f,self.pids,self.pweights,
                   self.pqw,self.poffsets,self.pnorm,self.step,self.sample_stride,self.trace],device=self.device)
         if self.frames is not None:
             wp.launch(sample_frames,len(self.rids),inputs=[self.e,self.old,self.hx,self.hy,self.f,self.rids,
@@ -338,21 +345,34 @@ class Simulator:
         out = Path(out)
         out.mkdir(parents=True,exist_ok=True)
         trace = self.trace.numpy()
+        if not np.isfinite(trace).all() or not np.isfinite(self.e.numpy()).all():
+            raise RuntimeError('Non-finite fields or diagnostics; refusing to report physical metrics')
         ts = (np.arange(len(trace))*self.sample_stride+0.5)*self.dt*TIME_FS
         result = dict(mesh=self.mesh['config'],run=asdict(self.config),vertices=len(self.mesh['v']),
                       triangles=len(self.mesh['f']),dt_fs=self.dt*TIME_FS,nsteps=self.nsteps,
+                      conservative_dt_limit_fs=self.dtlimit*TIME_FS,
                       mesh_seconds=self.mesh['mesh_seconds'],setup_seconds=self.setup_seconds,
                       capture_seconds=self.capture_seconds,wall_seconds=self.wall_seconds,gpu_seconds=self.gpu_seconds,
                       device=str(wp.get_device(self.device)),warp_version=wp.__version__,
+                      device_name=wp.get_device(self.device).name,
+                      source_sha256={p: hashlib.sha256(Path(__file__).with_name(p).read_bytes()).hexdigest()
+                                     for p in ['warp_waveguide.py','mesh_waveguide.py','analyze_waveguide.py']},
                       max_final_e=float(np.max(np.abs(self.e.numpy()))),
                       beta_exact_per_um=self.md['beta'],group_index=self.ng)
-        result.update(metrics(ts,trace,self.ports,self.md,self.ng,self.mesh['center'],self.config))
+        result.update(metrics(ts,trace,self.ports,self.md,self.ng,self.mesh['center'],self.config,
+                              self.modes,self.pnorm.numpy()))
         (out/'metrics.json').write_text(json.dumps(result,indent=2)+'\n')
-        np.savez_compressed(out/'traces.npz',time_fs=ts,trace=trace,ports=self.ports)
+        if self.graph is not None:
+            wp.capture_debug_dot_print(self.graph,str(out/'trajectory.dot'))
+        np.savez_compressed(out/'traces.npz',time_fs=ts,trace=trace[:,:len(self.ports)],ports=self.ports,
+                            higher_modes=trace[:,len(self.ports):],mode_norms=self.pnorm.numpy())
         np.savez_compressed(out/'mesh.npz',v=self.mesh['v'],f=self.mesh['f'],core=self.mesh['core'],
-                            outline=self.mesh['outline'],center=self.mesh['center'])
+                            outline=self.mesh['outline'],center=self.mesh['center'],
+                            config_json=json.dumps(self.mesh['config']))
         if self.frames is not None:
-            np.savez_compressed(out/'frames.npz',frames=self.frames.numpy().reshape((-1,*self.frame_shape,3)),
+            # Float16 is only an archive/display format; all simulation and
+            # quantitative monitor values retain their original precision.
+            np.savez_compressed(out/'frames.npz',frames=self.frames.numpy().reshape((-1,*self.frame_shape,3)).astype(np.float16),
                                 time_fs=(np.arange(self.frames.shape[0])*self.frame_stride+0.5)*self.dt*TIME_FS,
                                 extent=self.extent)
         print(json.dumps(result,indent=2),flush=True)
@@ -366,15 +386,21 @@ def main():
     ap.add_argument('--halo',type=float,default=0.35)
     ap.add_argument('--bend',type=float,default=1.5)
     ap.add_argument('--cfl',type=float,default=0.85)
-    ap.add_argument('--duration',type=float,default=160)
+    ap.add_argument('--duration',type=float,default=240)
     ap.add_argument('--sigma',type=float,default=4)
     ap.add_argument('--absorber-strength',type=float,default=10)
     ap.add_argument('--frames',action='store_true')
     ap.add_argument('--no-graph',action='store_true')
+    ap.add_argument('--mesh-from',type=Path,help='reuse a saved mesh.npz; overrides mesh flags')
     ap.add_argument('--out',default='results/run')
     args = ap.parse_args()
     wp.init()
-    mesh = build(MeshConfig(h=args.h,clad_ratio=args.clad_ratio,halo=args.halo,bend=args.bend))
+    if args.mesh_from:
+        with np.load(args.mesh_from,allow_pickle=False) as data:
+            mesh = {k:data[k] for k in ['v','f','core','outline','center']}
+            mesh.update(config=json.loads(str(data['config_json'])),mesh_seconds=0.0)
+    else:
+        mesh = build(MeshConfig(h=args.h,clad_ratio=args.clad_ratio,halo=args.halo,bend=args.bend))
     print(f"Mesh: {len(mesh['v'])} vertices, {len(mesh['f'])} triangles in {mesh['mesh_seconds']:.2f}s",flush=True)
     sim = Simulator(mesh,RunConfig(cfl=args.cfl,duration_fs=args.duration,sigma_fs=args.sigma,
                                  frames=args.frames,graph=not args.no_graph,absorber_strength=args.absorber_strength))

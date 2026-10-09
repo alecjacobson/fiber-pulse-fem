@@ -4,7 +4,9 @@ from scipy.signal import hilbert
 from fiber_pulse import C0, Z0
 
 
-def metrics(t,trace,ports,mode,ng,center,run):
+def metrics(t,trace,ports,mode,ng,center,run,modes=None,norms=None):
+    all_trace = trace
+    trace = trace[:,:len(ports)]
     dt = t[1]-t[0]
     omega_fs = 2*np.pi*C0/run.wavelength_um*1e-9
     admittance = mode['neff']
@@ -34,9 +36,10 @@ def metrics(t,trace,ports,mode,ng,center,run):
     flux = np.trapz(trace[:,:,2],t,axis=0)*1e-15*1e-6*1e12/Z0
     guided_flux = np.trapz(trace[:,:,3],t,axis=0)*1e-15*1e-6*1e12/Z0
     power = trace[:,:,2]*1e-6*1e12/Z0
-    return dict(beta_per_um=float(beta),beta_relative_error=float((beta/mode['beta'])-1),
+    result = dict(beta_per_um=float(beta),beta_relative_error=float((beta/mode['beta'])-1),
                 beta_phase_fit_rms_rad=float(residual_rms),
                 modal_transmission=float(eout/ein),modal_loss_db=float(-10*np.log10(eout/ein)),
+                carrier_modal_transmission=float(abs(phasors[op]/phasors[ip])**2),
                 backward_to_forward_energy=float(back/ein),
                 net_flux_transmission=float(flux[op]/flux[ip]),
                 window_flux_transmission=float(guided_flux[op]/guided_flux[ip]),
@@ -48,3 +51,15 @@ def metrics(t,trace,ports,mode,ng,center,run):
                 delay_relative_error=float(delay/expected_delay-1),path_length_um=float(length),
                 straight_group_index_measured=float(np.polyfit(x,arrivals[:-1],1)[0]*C0/1e9),
                 tail_fraction=float(np.sum(env2[-max(1,len(t)//10):,op])/np.sum(env2[:,op])))
+    if modes is not None:
+        modal_out = [float(eout/ein)]
+        modal_in = [1.0]
+        for i,md in enumerate(modes[1:]):
+            j = len(ports)+2*i
+            a = 0.5*(all_trace[:,j:j+2,0]-all_trace[:,j:j+2,1]/md['neff'])
+            energy = np.trapz(a*a,t,axis=0)*md['neff']*norms[j:j+2]/(ein*mode['neff']*norms[ip])
+            modal_in.append(float(energy[0]))
+            modal_out.append(float(energy[1]))
+        result.update(mode_transmissions=modal_out,input_mode_energy_ratios=modal_in,
+                      total_guided_transmission=float(sum(modal_out)))
+    return result
