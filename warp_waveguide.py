@@ -22,6 +22,8 @@ from mesh_waveguide import MeshConfig, build, operators
 wp.set_module_options({'enable_backward': False})
 TIME_FS = 1e9/C0
 E0 = 1e6
+SOURCE_HASHES = {p: hashlib.sha256(Path(__file__).with_name(p).read_bytes()).hexdigest()
+                 for p in ['warp_waveguide.py','mesh_waveguide.py','analyze_waveguide.py']}
 
 
 @fem.integrand
@@ -153,6 +155,7 @@ class RunConfig:
     frame_fs: float = 1.2
     frames: bool = False
     graph: bool = True
+    graph_unroll: int = 1
     device: str = 'cuda:0'
 
 
@@ -215,11 +218,14 @@ def port_quadrature(mesh, ports, md):
 
 class Simulator:
     def __init__(self, mesh, config=RunConfig()):
+        self.setup_start = time.perf_counter()
         self.mesh, self.config = mesh,config
         c = MeshConfig(**mesh['config'])
         r = config
         if not (0 < r.cfl <= 1):
             raise ValueError('CFL fraction must be in (0,1]')
+        if r.graph_unroll < 1:
+            raise ValueError('graph_unroll must be a positive integer')
         if r.graph and (not wp.get_device(r.device).is_cuda or not wp.is_conditional_graph_supported()):
             raise RuntimeError('Full device loop requires CUDA conditional graphs (CUDA 12.4+); use --no-graph only for validation')
         self.md,self.ng = mode_data(c,r)
@@ -228,13 +234,13 @@ class Simulator:
         self.dt = r.cfl*dtlimit
         self.dtlimit = dtlimit
         self.nsteps = int(np.ceil(r.duration_fs/(self.dt*TIME_FS)))
+        self.nsteps = ((self.nsteps+r.graph_unroll-1)//r.graph_unroll)*r.graph_unroll
         self.sample_stride = max(1,round(r.sample_fs/(self.dt*TIME_FS)))
         self.frame_stride = max(1,round(r.frame_fs/(self.dt*TIME_FS)))
         self.ports = np.r_[np.arange(4.0,5.61,0.2)+1e-6,14.5+1e-6]
         self.modes = [slab_mode(self.omega,c.width,2.04,1.46,i)
                       for i in range(int(np.ceil(2*self.md['V']/np.pi)))]
         self.device = r.device
-        self.setup_start = time.perf_counter()
         with wp.ScopedDevice(r.device):
             arr = lambda a,dtype=float: wp.array(np.asarray(a),dtype=dtype)
             self.f = arr(mesh['f'],wp.vec3i)
@@ -311,6 +317,12 @@ class Simulator:
         if self.frames is not None:
             self.frames.zero_()
 
+    def graph_body(self):
+        # Static unrolling reduces conditional-node overhead while the outer
+        # loop and its termination remain entirely device controlled.
+        for _ in range(self.config.graph_unroll):
+            self.one_step()
+
     def run(self):
         with wp.ScopedDevice(self.device):
             # Compile/allocate before capture. Reset all warm-up side effects.
@@ -320,7 +332,7 @@ class Simulator:
             t = time.perf_counter()
             if self.config.graph:
                 with wp.ScopedCapture(device=self.device) as capture:
-                    wp.capture_while(self.condition,self.one_step)
+                    wp.capture_while(self.condition,self.graph_body)
                 self.graph = capture.graph
             self.capture_seconds = time.perf_counter()-t
             self.setup_seconds = time.perf_counter()-self.setup_start
@@ -355,8 +367,7 @@ class Simulator:
                       capture_seconds=self.capture_seconds,wall_seconds=self.wall_seconds,gpu_seconds=self.gpu_seconds,
                       device=str(wp.get_device(self.device)),warp_version=wp.__version__,
                       device_name=wp.get_device(self.device).name,
-                      source_sha256={p: hashlib.sha256(Path(__file__).with_name(p).read_bytes()).hexdigest()
-                                     for p in ['warp_waveguide.py','mesh_waveguide.py','analyze_waveguide.py']},
+                      source_sha256=SOURCE_HASHES,
                       max_final_e=float(np.max(np.abs(self.e.numpy()))),
                       beta_exact_per_um=self.md['beta'],group_index=self.ng)
         result.update(metrics(ts,trace,self.ports,self.md,self.ng,self.mesh['center'],self.config,
@@ -391,6 +402,7 @@ def main():
     ap.add_argument('--absorber-strength',type=float,default=10)
     ap.add_argument('--frames',action='store_true')
     ap.add_argument('--no-graph',action='store_true')
+    ap.add_argument('--graph-unroll',type=int,default=1)
     ap.add_argument('--mesh-from',type=Path,help='reuse a saved mesh.npz; overrides mesh flags')
     ap.add_argument('--out',default='results/run')
     args = ap.parse_args()
@@ -403,7 +415,8 @@ def main():
         mesh = build(MeshConfig(h=args.h,clad_ratio=args.clad_ratio,halo=args.halo,bend=args.bend))
     print(f"Mesh: {len(mesh['v'])} vertices, {len(mesh['f'])} triangles in {mesh['mesh_seconds']:.2f}s",flush=True)
     sim = Simulator(mesh,RunConfig(cfl=args.cfl,duration_fs=args.duration,sigma_fs=args.sigma,
-                                 frames=args.frames,graph=not args.no_graph,absorber_strength=args.absorber_strength))
+                                 frames=args.frames,graph=not args.no_graph,graph_unroll=args.graph_unroll,
+                                 absorber_strength=args.absorber_strength))
     sim.run()
     sim.save(args.out)
 

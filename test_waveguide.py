@@ -34,10 +34,26 @@ class WaveguideTests(unittest.TestCase):
             oe = np.column_stack((np.arange(len(outline)),np.roll(np.arange(len(outline)),-1)))
             distance = igl.point_mesh_squared_distance(v[interface].mean(axis=1),outline,oe)[0]
             self.assertLess(np.max(distance),1e-16)
+            expected = np.abs(igl.winding_number(outline,oe,v[f].mean(axis=1)))>0.5
+            np.testing.assert_array_equal(m['core'],expected)
+
+    def test_original_host_mesher_accepts_nonpreset_resolution(self):
+        from fiber_pulse import channel_outline, build_mesh
+        lx = 25e-6
+        _,_,outline = channel_outline(lx,0.5e-6)
+        counts = []
+        for h in [0.08e-6,0.047e-6]:
+            v,f,core = build_mesh(outline,lx,h,2*h)
+            self.assertTrue(core.any())
+            area = np.abs(np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]]))/2
+            self.assertAlmostEqual(area.sum(),1.,places=10)
+            self.assertLessEqual(area.max(),0.5*(2*h/lx)**2*(1+1e-8))
+            counts.append(len(f))
+        self.assertGreater(counts[1],counts[0])
 
     @unittest.skipUnless(wp.is_cuda_available(), 'CUDA required')
     def test_fem_assembly_and_full_graph_against_numpy(self):
-        r = RunConfig(duration_fs=35)
+        r = RunConfig(duration_fs=35,graph_unroll=4)
         sim = Simulator(self.mesh,r)
         area,grad,mass,vol,_ = operators(self.mesh)
         f = self.mesh['f']

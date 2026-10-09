@@ -78,11 +78,30 @@ def build(c: MeshConfig):
     f[flip] = f[flip][:,[0,2,1]]
     # Classification uses the identical, un-subdivided polygon: using thousands
     # of collinear boundary subdivisions here needlessly makes meshing O(h^-3).
-    core = np.abs(igl.winding_number(outline,oe,v[f].mean(axis=1)))>0.5
+    core = classify_core(v[f].mean(axis=1),outline)
     # Every constrained core-outline segment must survive as a union of mesh edges.
     # Triangle preserves the PSLG; material jumps are assigned to whole elements.
     return dict(v=v, f=f, core=core, outline=outline, center=center,
                 config=asdict(c), mesh_seconds=time.perf_counter()-t)
+
+
+def classify_core(points,outline):
+    """Exact polygon membership, exploiting x-monotone sides when available.
+
+    No curve approximation is added: interpolation follows the same constrained
+    polygon edges passed to Triangle. Non-monotone outlines use winding number.
+    """
+    left = np.flatnonzero(np.abs(outline[:,0])<1e-12)
+    if len(left)==2 and left[1]==left[0]+1:
+        upper = outline[:left[0]+1][::-1]
+        lower = outline[left[1]:]
+        if np.all(np.diff(upper[:,0])>=0) and np.all(np.diff(lower[:,0])>=0):
+            x,y = points.T
+            return ((x>=0)&(x<=upper[-1,0])&
+                    (y<np.interp(x,upper[:,0],upper[:,1]))&
+                    (y>np.interp(x,lower[:,0],lower[:,1])))
+    edges = np.column_stack((np.arange(len(outline)),np.roll(np.arange(len(outline)),-1)))
+    return np.abs(igl.winding_number(outline,edges,points))>0.5
 
 
 def operators(mesh):

@@ -27,13 +27,20 @@ def cases(study):
         for sigma in [4.,8.]:
             yield f'sigma_{sigma}',MeshConfig(h=0.02),RunConfig(duration_fs=280,sigma_fs=sigma)
     elif study=='reference':
-        for bend in [0.,1.5]:
-            yield f"{'straight' if bend==0 else 'bend'}_h007",MeshConfig(h=0.007,bend=bend),RunConfig(duration_fs=240)
+        for h in [0.007,0.005]:
+            for bend in [0.,1.5]:
+                yield f"{'straight' if bend==0 else 'bend'}_h{round(h*1000):03d}",MeshConfig(h=h,bend=bend),RunConfig(duration_fs=240)
+    elif study=='optimized':
+        for h in [0.015,0.01,0.007,0.005]:
+            yield f'bend_h{round(h*1000):03d}_r4',MeshConfig(h=h,clad_ratio=4),RunConfig(duration_fs=240,graph_unroll=16)
+    elif study=='graph':
+        for unroll in [1,4,16,64]:
+            yield f'unroll_{unroll}',MeshConfig(h=0.02),RunConfig(duration_fs=240,graph_unroll=unroll)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--study',choices=['resolution','parameters','reference'],default='resolution')
+    ap.add_argument('--study',choices=['resolution','parameters','reference','optimized','graph'],default='resolution')
     ap.add_argument('--out',default='results/study')
     ap.add_argument('--rerun',action='store_true')
     a = ap.parse_args()
