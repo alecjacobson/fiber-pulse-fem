@@ -12,9 +12,10 @@ Outputs:
   fiber_pulse_apex.mp4         close-up of the pulse at the top of the bump
   fiber_pulse_poynting_hd.png  time-averaged Poynting field + mode cross-section
 
-Usage: python3 render_fiber_pulse.py [hd] [apex] [png]   (default: all three)
+Usage: python3 render_fiber_pulse.py [--dir DIR] [hd] [apex] [png]   (default: all three)
 """
 import glob
+import os
 import subprocess
 import sys
 
@@ -39,6 +40,12 @@ plt.rcParams.update({
 })
 CM_H = LinearSegmentedColormap.from_list(
     "kteal", ["#000000", "#06424d", "#12898a", "#7fd6b0", "#f4ffd8"])
+
+# optional "--dir DIR": read the cached data from (and write the renderings to) DIR
+if "--dir" in sys.argv:
+    _i = sys.argv.index("--dir")
+    os.chdir(sys.argv[_i + 1])
+    del sys.argv[_i:_i + 2]
 
 M = sio.loadmat("fiber_pulse_mesh_v6.mat", squeeze_me=True)
 V_um = M["V"] * 1e6

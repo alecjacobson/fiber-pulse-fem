@@ -17,27 +17,47 @@ visualizations of E, H and the Poynting vector.
 
 ## Usage
 
-1. `fiber_pulse.m` (MATLAB) meshes the domain, runs the simulation and writes
-   `fiber_pulse.mat`, `fiber_pulse_mesh_v6.mat` and one `fiber_pulse_fields/frame_*.mat` per
-   animation frame (about 2 GB at full resolution).
+Two equivalent implementations of the simulation write the same cache layout:
 
-       matlab -nodisplay -batch fiber_pulse            % full resolution (~12 min)
-       matlab -nodisplay -batch "quick=true; fiber_pulse"   % coarse preview
+* `fiber_pulse.py` (Python, libigl): meshing, outline/offset of the cubic Bézier channel and
+  operator construction use libigl; the spline helpers that libigl lacks (offsetting, adaptive
+  flattening) are ported on top of `igl.cubic_is_flat` / `igl.cubic_split`.
 
-2. `render_fiber_pulse.py` renders from the cached frames without rerunning the simulation:
+      python3 fiber_pulse.py --out run            # full resolution
+      python3 fiber_pulse.py --quick --out run    # coarse, short preview (seconds)
 
-       python3 render_fiber_pulse.py [png] [apex] [hd]
+* `fiber_pulse.m` (MATLAB, gptoolbox): the original implementation; also writes an mp4 and a
+  summary png.
 
-   * `fiber_pulse_hd.mp4`: E_z, |H| and |S| animation
-   * `fiber_pulse_apex.mp4`: close-up of the pulse at the top of the bump
-   * `fiber_pulse_poynting_hd.png`: time-averaged Poynting vector as oriented line integral
-     convolution
+      matlab -nodisplay -batch fiber_pulse
+      matlab -nodisplay -batch "quick=true; fiber_pulse"
+
+Both write `fiber_pulse_mesh_v6.mat` (mesh, core mask, time-averaged ⟨S⟩, mode data) and one
+`fiber_pulse_fields/frame_*.mat` per animation frame (about 2 GB at full resolution).
+
+`render_fiber_pulse.py` renders from the cached frames without rerunning the simulation:
+
+    python3 render_fiber_pulse.py --dir run [png] [apex] [hd]
+
+* `fiber_pulse_hd.mp4`: E_z, |H| and |S| animation
+* `fiber_pulse_apex.mp4`: close-up of the pulse at the top of the bump
+* `fiber_pulse_poynting_hd.png`: time-averaged Poynting vector as oriented line integral
+  convolution
+
+### Agreement between the two implementations
+
+The Python port reproduces the MATLAB geometry exactly (offset spline, flattened outline) and,
+given the same mesh (`--mesh-from`), the fields to about 1e-7 relative error (the cache is
+stored in single precision) and the time-averaged ⟨S⟩ to about 3e-9. Meshes generated
+independently by the two can differ slightly: the hex-lattice points differ by one rounding
+error, which changes how Triangle breaks ties among cocircular points. Fed MATLAB's exact
+lattice points, libigl's `triangle.triangulate` returns an identical mesh.
 
 ## Dependencies
 
-* MATLAB with [gptoolbox](https://github.com/alecjacobson/gptoolbox) on the path (meshing via
-  `triangulate`, `grad`, `spline_to_poly`, ...), plus `spline_offset.m`, which offsets the cubic
-  Bézier channel centre line and is not included here.
-* Python 3 with numpy, scipy, matplotlib, and `ffmpeg` on the path.
+* Python: `pip install -r requirements.txt` (libigl ≥ 2.6 for `igl.triangle`), and `ffmpeg` on the
+  path for the animations.
+* MATLAB version only: [gptoolbox](https://github.com/alecjacobson/gptoolbox) on the path
+  (`triangulate`, `grad`, `spline_offset`, `spline_to_poly`, ...).
 
 Written with Claude Code.

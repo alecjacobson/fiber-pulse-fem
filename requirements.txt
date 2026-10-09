@@ -1,0 +1,4 @@
+libigl>=2.6
+numpy
+scipy
+matplotlib
