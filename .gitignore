@@ -1,0 +1,6 @@
+# generated outputs and cached simulation data
+*.mp4
+*.png
+*.mat
+fiber_pulse_fields/
+.DS_Store
