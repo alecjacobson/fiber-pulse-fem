@@ -1,4 +1,6 @@
-libigl>=2.6
+libigl>=2.6.3
 numpy
 scipy
 matplotlib
+warp-lang==1.15.0
+imageio-ffmpeg>=0.6

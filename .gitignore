@@ -6,3 +6,7 @@ fiber_pulse_fields/
 .DS_Store
 .venv/
 __pycache__/
+*.npz
+.pytest_cache/
+results/
+!results/README.md
