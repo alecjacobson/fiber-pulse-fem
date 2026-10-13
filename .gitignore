@@ -10,3 +10,9 @@ __pycache__/
 .pytest_cache/
 results/
 !results/README.md
+
+# Curated, published integrator benchmark artifacts
+!artifacts/integrators/*.png
+!artifacts/integrators/animation/*.png
+!artifacts/integrators/animation/*.mp4
+!artifacts/integrators/traces/*.npz
