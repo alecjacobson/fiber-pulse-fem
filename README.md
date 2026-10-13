@@ -313,3 +313,45 @@ lattice points, libigl's `triangle.triangulate` returns an identical mesh.
   (`triangulate`, `grad`, `spline_offset`, `spline_to_poly`, ...).
 
 Written with Claude Code.
+
+## Integrator benchmark plan
+
+The next study compares numerical integration and linear-solver choices for the
+same first-order Maxwell system, including the same spatially varying absorber.
+The baseline branch is `warp-fem-pulse`; implementation and measurements live on
+`integrator-benchmarks`.
+
+1. **Lock the baseline.** Run the existing five regression tests and retain the
+   previous 5 nm reference. Use identical meshes, source definitions, material
+   coefficients, monitor cuts, and physical run duration across methods.
+2. **Establish equivalences.** Test average-acceleration Newmark
+   (beta=1/4, gamma=1/2) against trapezoidal integration of a linear second-order
+   oscillator. Test midpoint against trapezoidal integration for an autonomous
+   linear system, and separately test their different source quadratures.
+   Spatially varying magnetic/electric damping must survive any elimination;
+   replacing Maxwell by a naive damped scalar wave equation would change the problem.
+3. **Screen methods.** Compare existing staggered leapfrog, classical RK4,
+   implicit midpoint, Crank–Nicolson, and mildly/strongly dissipative theta methods.
+   Compare reusable cuDSS factorization with GPU iterative solves. Newmark's
+   equivalent parameter choice is an equivalence regression, not an independent
+   accuracy result counted twice. Screen small meshes before expensive fine cases.
+4. **Regress each implementation.** Check single-step algebra against independent
+   float64 CPU solves, temporal convergence on manufactured modes, lossless energy,
+   source timing, observed linear residuals, graph replay, and full pulse traces.
+   Preserve the existing regression suite throughout.
+5. **Sweep and promote.** Start at 40/20 nm, then promote candidates to 10/5 nm.
+   Sweep implicit dt through 0.01, 0.02, 0.05, 0.1 fs and explicit stability-safe
+   fractions; test iterative tolerances/iteration counts on finalists. Cache keys
+   must include method, all configuration values, and source hashes. Record failed
+   and inaccurate cases as such instead of silently omitting them.
+6. **Choose by accuracy and cost.** Compare beta against the analytic straight
+   slab; compare guided transmission and envelope arrival against same-mesh
+   small-step references and the refined spatial reference. Report setup and
+   factorization separately from median trajectory time, factor/device memory,
+   solve residuals, and graph-capture support. Select the fastest admissible case
+   at stated accuracy thresholds, and publish the full accuracy/runtime frontier.
+   cuDSS is an optional dependency; explicit and iterative Warp paths remain usable
+   without it. Keep full-duration device execution and avoid per-step host checks.
+
+Newmark background: [OpenSees Newmark documentation](https://opensees.github.io/OpenSeesDocumentation/user/manual/analysis/integrator/Newmark.html).
+cuDSS backend: [NVIDIA cuDSS documentation](https://docs.nvidia.com/cuda/cudss/).
