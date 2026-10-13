@@ -1,0 +1,43 @@
+{
+  "modes": [
+    {
+      "order": 0,
+      "neff": 1.994482370918391,
+      "beta_per_um": 23.555831444329208,
+      "group_index_energy": 2.0681858880164357,
+      "group_index_derivative": 2.068185888081583,
+      "cladding_amplitude_decay_length_um": 0.062312271193567755
+    },
+    {
+      "order": 1,
+      "neff": 1.8553632250438383,
+      "beta_per_um": 21.912764953151836,
+      "group_index_energy": 2.1545155771748137,
+      "group_index_derivative": 2.154515577221839,
+      "cladding_amplitude_decay_length_um": 0.07395509012809295
+    },
+    {
+      "order": 2,
+      "neff": 1.6206974422702023,
+      "beta_per_um": 19.14124503130765,
+      "group_index_energy": 2.2600363617734054,
+      "group_index_derivative": 2.2600363548040114,
+      "cladding_amplitude_decay_length_um": 0.12033799125194504
+    }
+  ],
+  "V_half_width": 4.206842605815592,
+  "min_bend_radius_um": 1.0,
+  "intensity_fwhm_fs": 6.6604368892615815,
+  "spectral_intensity_fwhm_THz": 66.25259087984922,
+  "fourth_mode_cutoff_wavelength_um": 0.47492689495916696,
+  "ideal_gaussian_energy_fraction_above_fourth_mode_cutoff": 0.00804299123373632,
+  "note": "Spectral tail is for the ideal temporal Gaussian, not a measured fourth-mode power.",
+  "sources": [
+    "https://ocw.mit.edu/courses/6-974-fundamentals-of-photonics-quantum-electronics-spring-2006/bf3bdeb971819ddc9c68719d28bb2745_classnotes.pdf",
+    "https://math.mit.edu/~stevenj/18.369/spring16/",
+    "https://www.nature.com/articles/ncomms2232",
+    "https://optics.ansys.com/hc/en-us/articles/360042799933-Bent-waveguide-analysis",
+    "https://optics.ansys.com/hc/en-us/articles/360034902213-Mode-source-in-broadband-simulations",
+    "https://meep.readthedocs.io/en/latest/Python_Tutorials/Basics/"
+  ]
+}

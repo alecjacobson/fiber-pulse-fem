@@ -20,3 +20,4 @@ results/
 # Reproducible physical-speed verification
 !artifacts/light_speed/*.png
 !artifacts/light_speed/*.npz
+!artifacts/phenomenology/*.png

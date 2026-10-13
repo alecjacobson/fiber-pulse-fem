@@ -65,6 +65,73 @@ python report_light_speed.py
 python -m unittest -v test_waveguide test_integrators test_light_speed
 ```
 
+## Phenomenology assessment
+
+The straight-guide propagation is quantitatively supported by analytic slab
+theory; bend-induced mode conversion and loss of guided power are physically
+consistent, but the exact radiation budget remains less well validated.
+This is an idealized 2D, lossless, nondispersive slab with E_z/H_x/H_y fields,
+not a full three-dimensional fiber model.
+
+The [MIT slab-waveguide derivation](https://ocw.mit.edu/courses/6-974-fundamentals-of-photonics-quantum-electronics-spring-2006/bf3bdeb971819ddc9c68719d28bb2745_classnotes.pdf)
+(section 2.7) predicts three guided modes at 532 nm: effective indices
+1.99448, 1.85536, and 1.62070. The half-width V parameter is 4.20684.
+The fundamental field has a cladding amplitude decay length of 62.3 nm.
+`assess_phenomenology.py` independently checks its group index using the
+Hellmann–Feynman identity
+`ng = integral(n² |E|²) / (neff * integral(|E|²))`, obtaining 2.0681858880,
+consistent with the derivative of beta. Group index exceeding the core index
+is therefore expected here. The connection between group and energy velocity
+is discussed in [MIT's nanophotonics notes](https://math.mit.edu/~stevenj/18.369/spring16/).
+The existing 5 nm straight control gives 100.009% guided transmission and a
+68.387 fs delay versus the analytic 68.297 fs over 9.9 µm; the small excess
+transmission is a diagnostic/discretization error, not gain.
+
+The default bend has minimum centerline radius 1 µm. Its tangent is continuous,
+but curvature jumps where the cubics meet the straight leads. This is a tight
+multimode bend; smooth appearance alone does not make propagation adiabatic.
+Both [bend-mode mismatch and radiation](https://optics.ansys.com/hc/en-us/articles/360042799933-Bent-waveguide-analysis)
+and [strong intermodal mixing](https://www.nature.com/articles/ncomms2232) are
+expected mechanisms. Published examples support these mechanisms, not the exact
+loss value of this particular geometry.
+
+Five additional controls vary bump height at fixed 6 µm span, 10 nm mesh,
+cladding ratio 4 and CFL 0.98. TE0 energy transmission at heights
+0, 0.25, 0.5, 1.0, 1.5 µm is respectively about
+100.02%, 72.69%, 88.34%, 14.99%, 56.96%; total guided transmission is
+100.00%, 99.95%, 99.85%, 93.55%, 71.46%.
+The nonmonotonic fundamental-mode transmission is consistent with coherent
+mode conversion rather than a single attenuation coefficient. Refining the
+0.25 µm control to 5 nm gives TE0=72.61%, TE1=26.97%, TE2=0.417%
+(relative to incident TE0), and 99.968% total guided transmission. Substantial
+fundamental depletion with almost no loss of guided power survives refinement.
+
+![Bend-height controls](artifacts/phenomenology/bend_controls.png)
+
+The existing fine default bend sends about 56.9%, 2.7%, and 11.9% of incident
+TE0 energy into the three forward modes. Thus its roughly 43% fundamental-mode
+depletion is not 43% radiative loss. Its 76.68 fs TE0 centroid delay exceeds the
+73.96 fs straight-mode/centerline estimate, but that difference alone neither
+establishes an incorrect speed nor validates the precise scattering delay.
+
+Remaining checks before claiming precise physical bend loss: a true PML and
+domain-size convergence; a closed-surface energy budget; frequency-dependent
+mode projections and straight-reference normalization; and an independent
+Maxwell solver for the same geometry and E_z polarization.
+[Meep's bend tutorial](https://meep.readthedocs.io/en/latest/Python_Tutorials/Basics/)
+describes the straight-reference transmission/reflection procedure.
+The current pulse has 6.66 fs intensity FWHM and roughly 66 THz spectral FWHM.
+[Carrier-only mode profiles can mismatch broadband fields](https://optics.ansys.com/hc/en-us/articles/360034902213-Mode-source-in-broadband-simulations).
+In fact, a fourth slab mode becomes guided below about 475 nm: about 0.8% of
+the ideal temporal Gaussian's spectral energy lies beyond this cutoff. That is
+not a measured fourth-mode power, but shows why counting only three modes
+across the entire pulse is an approximation.
+
+Raw control metrics, the refinement, and calculated theory values are archived
+in `artifacts/phenomenology/`. Run `python assess_phenomenology.py` to reproduce
+the analytic checks and plot; its docstring gives the simulation commands.
+These controls use the unchanged solver covered by the 13-test regression suite.
+
 ## Integrator benchmark results
 
 The `integrator-benchmarks` branch compares **52 configurations and 142 full
