@@ -1,4 +1,4 @@
 -r requirements.txt
 # Optional direct-solver backend and public CUDA graph metadata API.
 nvidia-cudss-cu12==0.8.0.10
-cuda-python>=12.8,<13
+cuda-bindings==12.9.7

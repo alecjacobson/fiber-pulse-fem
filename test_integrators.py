@@ -94,20 +94,34 @@ class IntegratorTests(unittest.TestCase):
         self.assertLess(abs(np.dot(weight,self.state(s)**2)/e0-1),2e-5)
     def test_graph_replay_and_backend_agreement(self):
         states=[]
-        for backend in self.backends:
-            s=self.sim(backend=backend,duration=35);s.run();before=self.state(s);trace=s.trace.numpy()
+        for method,backend in [('rk4','cg')]+[('midpoint',b) for b in self.backends]:
+            s=self.sim(method=method,backend=backend,duration=35);s.run();before=self.state(s);trace=s.trace.numpy()
             s.reset();wp.capture_launch(s.graph);wp.synchronize()
             np.testing.assert_allclose(self.state(s),before,rtol=0,atol=2e-6)
             np.testing.assert_allclose(s.trace.numpy(),trace,rtol=0,atol=2e-6)
             self.assertEqual(s.step.numpy()[0],s.nsteps)
-            self.assertLess(s.residual_stats.numpy()[0],2e-6)
+            if hasattr(s,'residual_stats'):self.assertLess(s.residual_stats.numpy()[0],2e-6)
             with tempfile.TemporaryDirectory() as temp:
                 path=Path(temp)/'graph.dot';wp.capture_debug_dot_print(s.graph,str(path))
                 self.assertNotIn('HtoD',path.read_text());self.assertNotIn('DtoH',path.read_text())
-            states.append(before);s.close()
+            if method=='midpoint':states.append(before)
+            s.close()
         if len(states)>1:
             # Single precision roundoff accumulates over 700 solves; require
             # agreement within 0.05%, tighter than study power/arrival gates.
             self.assertLess(np.linalg.norm(states[0]-states[1])/np.linalg.norm(states[1]),5e-4)
+
+    def test_cg_iteration_limit_is_reported_on_device(self):
+        from device_cg import DeviceCG
+        from warp.sparse import bsr_from_triplets
+        with wp.ScopedDevice('cuda:0'):
+            a=bsr_from_triplets(2,2,wp.array([0,0,1,1],dtype=int),wp.array([0,1,0,1],dtype=int),wp.array([4.,1.,1.,3.],dtype=float))
+            b=wp.array([1.,2.],dtype=float);x=wp.zeros(2)
+            solver=DeviceCG(a,b,x,tol=1e-8,maxiter=1)
+            solver()
+            np.testing.assert_array_equal(solver.stats.numpy(),[1,1])
+            self.assertGreater(np.linalg.norm(np.array([[4.,1.],[1.,3.]])@x.numpy()-[1.,2.]),.1)
+            b.zero_();x.zero_();solver.stats.zero_();solver()
+            np.testing.assert_array_equal(solver.stats.numpy(),[0,0])
 
 if __name__=='__main__':unittest.main()

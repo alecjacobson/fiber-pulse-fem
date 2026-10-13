@@ -19,9 +19,10 @@ def label(r):
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--root',type=Path,default=Path('results/integrators'));ap.add_argument('--out',type=Path,default=Path('artifacts/integrators'))
+    ap.add_argument('--archive',type=Path,help='Regenerate figures from committed measurements and selected traces')
     a=ap.parse_args();a.out.mkdir(parents=True,exist_ok=True)
-    rows=[]
-    for path in sorted(a.root.glob('*/metrics.json')):
+    rows=json.loads(a.archive.read_text())['rows'] if a.archive else []
+    for path in ([] if a.archive else sorted(a.root.glob('*/metrics.json'))):
         r=json.loads(path.read_text());r['name']=path.parent.name
         if 'gpu_seconds' in r:rows.append(r)
     fine=[r for r in rows if r['case']['h']==.005 and r['case']['method']=='leapfrog']
@@ -43,9 +44,19 @@ def main():
             abs(r['total_guided_transmission_reference_error'])/.005,
             abs(r['delay_fs']-reference['delay_fs'])/.1)
         r['admissible']=r['quality_score']<=1 and r['status']=='ok' and r['tail_fraction']<1e-3
+    tiers={}
+    for tier,beta,power,arrival in [('preview',.01,.02,2.),('balanced',.002,.005,.4),('strict',.001,.005,.1)]:
+        acceptable=[r for r in rows if r['status']=='ok' and r['tail_fraction']<1e-3
+                    and abs(r['beta_relative_error'])<=beta
+                    and abs(r['modal_transmission_reference_error'])<=power
+                    and abs(r['total_guided_transmission_reference_error'])<=power
+                    and abs(r['delay_fs']-reference['delay_fs'])<=arrival]
+        winner=min(acceptable,key=lambda r:r['gpu_seconds']) if acceptable else None
+        tiers[tier]=dict(beta_limit=beta,power_relative_limit=power,arrival_limit_fs=arrival,
+                         winner=winner['name'] if winner else None)
     valid=[r for r in rows if r['admissible']]
     best=min(valid,key=lambda r:r['gpu_seconds']) if valid else None
-    (a.out/'measurements.json').write_text(json.dumps(dict(reference=reference['name'],best=best['name'] if best else None,rows=rows),indent=2)+'\n')
+    (a.out/'measurements.json').write_text(json.dumps(dict(reference=reference['name'],best=best['name'] if best else None,tiers=tiers,rows=rows),indent=2)+'\n')
     flat=[]
     for r in rows:
         row={k:v for k,v in r.items() if isinstance(v,(int,float,str,bool))}
@@ -87,10 +98,17 @@ def main():
                 ys=[max(abs(r[key])*(1 if key=='quality_score' else 100),1e-5) for r in data]
                 ax.scatter([r['gpu_seconds'] for r in data],ys,c=COLORS[method],s=25+300*h,
                            marker='x' if method=='theta' else 'o',alpha=.7,label=f'{method} {h*1000:g} nm')
-                ax.set(xscale='log',yscale='log',xlabel='median trajectory [s]',ylabel=ylabel);ax.grid(alpha=.2)
+                ax.set(xscale='log',yscale='log',xlabel='trajectory [s]',ylabel=ylabel);ax.grid(alpha=.2)
+    rejected=[r for r in rows if r['status']!='ok']
+    for ax,key in zip(axs,['quality_score','total_guided_transmission_reference_error','delay_fs_reference_error']):
+        if rejected:
+            ax.scatter([r['gpu_seconds'] for r in rejected],
+                       [max(abs(r[key])*(1 if key=='quality_score' else 100),1e-5) for r in rejected],
+                       marker='x',color='black',s=65,label='solver gate failed')
     axs[0].axhline(1,color='black',ls=':',lw=1)
     if best:
-        axs[0].annotate(f"fastest admissible\n{best['case']['method']}, {best['case']['h']*1000:g} nm",(best['gpu_seconds'],best['quality_score']),xytext=(12,15),textcoords='offset points',fontsize=8)
+        axs[0].annotate(f"fastest admissible\n{best['case']['method']}, {best['case']['h']*1000:g} nm",(best['gpu_seconds'],best['quality_score']),xytext=(-110,32),textcoords='offset points',fontsize=8,arrowprops=dict(arrowstyle='->',color=COLORS['leapfrog']))
+        axs[0].scatter([best['gpu_seconds']],[best['quality_score']],marker='*',s=100,color=COLORS['leapfrog'],edgecolors='black',zorder=5)
     axs[2].legend(fontsize=6,ncol=2)
     fig.suptitle('Accuracy against analytic beta and refined spatial reference; time includes diagnostics')
     fig.savefig(a.out/'accuracy_cost.png',dpi=160);plt.close(fig)
@@ -101,7 +119,9 @@ def main():
         if group:chosen.append(min(group,key=lambda r:abs(r['dt_fs']-.05)))
     fig,axs=plt.subplots(2,1,figsize=(10,7),layout='constrained')
     for r in chosen:
-        p=np.load(a.root/r['name']/'traces.npz');tr=p['trace'];t=p['time_fs']
+        path=a.root/r['name']/'traces.npz'
+        if not path.exists():path=(a.archive.parent if a.archive else a.out)/'traces'/f"{r['name']}.npz"
+        p=np.load(path);tr=p['trace'];t=p['time_fs']
         neff=r['beta_per_um']/(1+r['beta_relative_error'])/(2*np.pi/.532)
         fw=.5*(tr[:,:,0]-tr[:,:,1]/neff);en=np.abs(hilbert(fw,axis=0))**2
         scale=en[:,3].max()
@@ -112,7 +132,7 @@ def main():
     axs[1].set(xlabel='time [fs]',ylabel='accumulated transmitted TE0 energy',xlim=(60,240))
     for ax in axs:ax.grid(alpha=.2)
     fig.savefig(a.out/'pulse_comparison.png',dpi=160);plt.close(fig)
-    print('Reference:',reference['name']);print('Best:',best['name'] if best else 'none')
+    print('Tiers:',json.dumps(tiers));print('Reference:',reference['name']);print('Best:',best['name'] if best else 'none')
     for r in sorted(rows,key=lambda r:(r['case']['h'],r['gpu_seconds'])):
         print(f"{r['name']}: {r['gpu_seconds']:.3f}s beta={r['beta_relative_error']:.5%} T0={r['modal_transmission']:.6f} Tg={r['total_guided_transmission']:.6f} delay={r['delay_fs']:.4f} score={r['quality_score']:.2f} {r['status']}")
 if __name__=='__main__':main()

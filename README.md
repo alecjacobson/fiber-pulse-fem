@@ -3,6 +3,73 @@
 A graph-capturable GPU Maxwell solver for a visible-light pulse in a conforming,
 Bézier-shaped 2D slab waveguide. The original Python/MATLAB implementation is retained below.
 
+## Integrator benchmark results
+
+The `integrator-benchmarks` branch compares **52 configurations and 142 full
+240 fs trajectories** on an NVIDIA L40: leapfrog, RK4, implicit midpoint,
+Crank–Nicolson, theta=0.55, and backward Euler (theta=1), with Warp CG and optional
+cuDSS solves. **Explicit leapfrog is the fastest qualified choice at each of the
+three accuracy tiers below.** All use cladding ratio 4, halo 0.35 µm, and CFL 0.98.
+
+| Setting | Mesh h | Step | GPU trajectory | Beta error | Guided transmission | Envelope delay |
+|---|---:|---:|---:|---:|---:|---:|
+| Preview | 20 nm | 0.02621 fs | 1.19 s | 0.710% | 71.154% | 78.115 fs |
+| Balanced | 10 nm | 0.01195 fs | 5.91 s | 0.177% | 71.459% | 76.969 fs |
+| Strict | 5 nm | 0.005119 fs | 37.38 s | 0.0446% | 71.511% | 76.682 fs |
+
+Times are medians of three replays, including port diagnostics and excluding
+setup. The strict run uses 1,695,565 vertices, about 1.09 GB of additional device
+allocation, and 6.31 s of solver setup. Its TE0 transmission is 56.927%; its output
+centroid arrives at 109.189 fs. Envelope delay is measured between input/output
+ports, not from the source clock. The device-memory figure is an allocation delta,
+not a peak-memory measurement.
+
+The declared preview/balanced/strict gates are respectively: beta error at most
+1% / 0.2% / 0.1%; relative TE0 **and** total-guided transmission errors at most
+2% / 0.5% / 0.5%; and envelope-delay differences at most 2 / 0.4 / 0.1 fs.
+Beta uses the analytic slab mode. Power and delay use the 5 nm, CFL 0.3 numerical
+reference, so these differences are not certified continuum error bounds.
+Qualification also requires a resolved tail, no unconverged solves, and sampled
+relative linear residual below 2e-5. All 52 graphs contain no host transfers.
+Three solver configurations fail residual/convergence gates and remain in the
+published data. This study uses P1/P0 spatial spaces; “best” refers to the tested
+configurations.
+
+**cuDSS helps some implicit runs, but does not beat explicit at matched accuracy.**
+At 5 nm and dt=0.05 fs, cuDSS takes 30.91 s versus CG's 36.93 s, but beta error is
+0.318% and delay is 0.610 fs above the reference. At dt=0.02 fs, the qualified
+implicit choices take 43.00 s with CG tolerance 1e-5, 46.13 s with tolerance 1e-6,
+and 62.65 s with cuDSS. cuDSS additionally spends 9.90 s on analysis/factorization
+and uses about 2.45 GB of additional device allocation. Fine implicit controls
+were measured once; the explicit finalist was replayed three times. The complete
+[study manifest](artifacts/integrators/study_manifest.json) records replay counts.
+
+Stability alone is insufficient: theta=0.55 at dt=0.05 fs suppresses almost all
+transmitted light. Transmission alone can also mislead: the 20 nm midpoint run at
+0.1 fs nearly matches refined TE0 transmission while its beta error is 1.87% and
+its envelope delay is about 4.08 fs too late. The multi-metric gates catch both.
+
+**Eleven regression tests pass**, covering mesh conformity, independent CPU
+Maxwell updates, Newmark equivalence, temporal order, energy, solver failure
+reporting, full graph replay, and absence of host transfers. See the
+[verification log](artifacts/integrators/verification.txt) and the
+[staged benchmark plan](#integrator-benchmark-plan).
+
+* [Accuracy versus runtime](artifacts/integrators/accuracy_cost.png)
+* [Time-step, propagation, loss, and arrival trends](artifacts/integrators/time_step_trends.png)
+* [Dissipative controls](artifacts/integrators/damping_controls.png) and [pulse comparison](artifacts/integrators/pulse_comparison.png)
+* [All measurements: CSV](artifacts/integrators/measurements.csv), [JSON](artifacts/integrators/measurements.json), and [environment](artifacts/integrators/environment.json)
+* [New implicit pulse animation (MP4)](artifacts/integrators/animation/pulse.mp4) / [GIF](artifacts/integrators/animation/pulse.gif): midpoint/CG, 20 nm, dt=0.02 fs; frame recording is excluded from the timing comparison.
+
+Selected full port traces are committed alongside the measurements. Regenerate
+plots without rerunning the GPU study with:
+
+```bash
+python report_integrators.py --archive artifacts/integrators/measurements.json
+# Recommended strict simulation:
+python warp_waveguide.py --h 0.005 --clad-ratio 4 --cfl 0.98 --out results/strict
+```
+
 ## Warp FEM solver
 
 ```bash

@@ -1,0 +1,13 @@
+{
+  "python": "3.10.12",
+  "packages": {
+    "warp-lang": "1.15.0",
+    "numpy": "2.2.6",
+    "scipy": "1.15.0",
+    "libigl": "2.6.3",
+    "nvidia-cudss-cu12": "0.8.0.10",
+    "cuda-bindings": "12.9.7"
+  },
+  "gpu": "NVIDIA L40, 570.158.01, 49140 MiB",
+  "notes": "One GPU benchmark process at a time; three trajectory replays on coarse/10 nm cases and finalists. Setup excludes Python process/import startup. Device memory is post-run allocation delta, not peak."
+}

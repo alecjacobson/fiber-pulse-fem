@@ -1,0 +1,522 @@
+{
+  "cases": [
+    {
+      "case": {
+        "h": 0.005,
+        "method": "leapfrog",
+        "cfl": 0.3
+      },
+      "repeats": 1,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.005,
+        "method": "leapfrog",
+        "cfl": 0.98
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.005,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg"
+      },
+      "repeats": 1,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.005,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg",
+        "tolerance": 0.0001,
+        "maxiter": 100
+      },
+      "repeats": 1,
+      "status": "large_solve_residual"
+    },
+    {
+      "case": {
+        "h": 0.005,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg",
+        "tolerance": 1e-05,
+        "maxiter": 100
+      },
+      "repeats": 1,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.005,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cudss"
+      },
+      "repeats": 1,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.005,
+        "method": "midpoint",
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 1,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.005,
+        "method": "midpoint",
+        "dt_fs": 0.05,
+        "backend": "cudss"
+      },
+      "repeats": 1,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "leapfrog",
+        "cfl": 0.3
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "leapfrog",
+        "cfl": 0.85
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "leapfrog",
+        "cfl": 0.98
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg",
+        "tolerance": 0.0001,
+        "maxiter": 100
+      },
+      "repeats": 3,
+      "status": "large_solve_residual"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg",
+        "tolerance": 1e-06,
+        "maxiter": 4
+      },
+      "repeats": 3,
+      "status": "solver_nonconvergence"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg",
+        "tolerance": 1e-07,
+        "maxiter": 100
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "midpoint",
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "midpoint",
+        "dt_fs": 0.05,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "rk4",
+        "dt_fraction": 0.6
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.01,
+        "method": "rk4",
+        "dt_fraction": 1.25
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "cn",
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "leapfrog",
+        "cfl": 0.3
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "leapfrog",
+        "cfl": 0.85
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "leapfrog",
+        "cfl": 0.98
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "midpoint",
+        "dt_fs": 0.01,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "midpoint",
+        "dt_fs": 0.01,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "midpoint",
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "midpoint",
+        "dt_fs": 0.05,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "midpoint",
+        "dt_fs": 0.1,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "midpoint",
+        "dt_fs": 0.1,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "rk4",
+        "dt_fraction": 0.6
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "rk4",
+        "dt_fraction": 1.25
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "theta",
+        "theta": 0.55,
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.02,
+        "method": "theta",
+        "theta": 1.0,
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "cn",
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "leapfrog",
+        "cfl": 0.3
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "leapfrog",
+        "cfl": 0.85
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "leapfrog",
+        "cfl": 0.98
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "midpoint",
+        "dt_fs": 0.01,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "midpoint",
+        "dt_fs": 0.01,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "midpoint",
+        "dt_fs": 0.02,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "midpoint",
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "midpoint",
+        "dt_fs": 0.05,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "midpoint",
+        "dt_fs": 0.1,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "midpoint",
+        "dt_fs": 0.1,
+        "backend": "cudss"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "rk4",
+        "dt_fraction": 0.6
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "rk4",
+        "dt_fraction": 1.25
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "theta",
+        "theta": 0.55,
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    },
+    {
+      "case": {
+        "h": 0.04,
+        "method": "theta",
+        "theta": 1.0,
+        "dt_fs": 0.05,
+        "backend": "cg"
+      },
+      "repeats": 3,
+      "status": "ok"
+    }
+  ],
+  "notes": "32 coarse and 12 10 nm configurations have three replays each. At 5 nm, the explicit finalist has three; the reference and six implicit controls/tolerance studies have one. RK4 and dissipative controls were screened out before 5 nm promotion. Frame recording is a separate run, excluded from timing comparisons."
+}
