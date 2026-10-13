@@ -355,3 +355,63 @@ The baseline branch is `warp-fem-pulse`; implementation and measurements live on
 
 Newmark background: [OpenSees Newmark documentation](https://opensees.github.io/OpenSeesDocumentation/user/manual/analysis/integrator/Newmark.html).
 cuDSS backend: [NVIDIA cuDSS documentation](https://docs.nvidia.com/cuda/cudss/).
+
+### Implemented methods and regression gates
+
+`integrators.py` adds classical RK4, implicit midpoint, Crank–Nicolson (CN),
+and the theta family to the existing leapfrog solver. Every method advances the
+same P1/P0, lumped-mass Maxwell system. Midpoint samples the imposed current at
+mid-step; CN averages its endpoint values. For an autonomous linear system they
+are identical. Average-acceleration Newmark (beta=1/4, gamma=1/2) is trapezoidal
+integration of the linear second-order system written in displacement/velocity.
+Other Newmark parameters need not be equivalent. The regression suite checks this
+identity separately instead of counting Newmark as an independent benchmark.
+
+The implicit methods eliminate magnetic fields exactly, including their
+spatially varying damping. With integrated derivative matrices `Bx`, `By`, cell
+areas `A`, electric mass `M`, and damping `alpha_h`, the constant electric system is
+
+```
+S = diag(M * (1 + theta*dt*alpha_e))
+    + (theta*dt)^2 * (Bx.T * W * Bx + By.T * W * By)
+W = diag(1 / (A * (1 + theta*dt*alpha_h)))
+```
+
+This SPD matrix is diagonally scaled before solution. Its sparse products are
+prepared with SciPy during setup from the actual Warp FEM matrices; all time
+integration, source evaluation, linear solves, and diagnostics run on the GPU.
+The optional cuDSS backend factors once. The Warp CG backend uses preallocated
+storage and nested CUDA conditional loops, with convergence counters on device.
+True residuals are sampled every 32 steps, independently of CG's recursive
+residual. Iteration-limit failures remain in the benchmark results.
+
+cuDSS 0.8.0 initially captured two small pageable host metadata transfers, which
+CUDA conditional bodies reject. `cudss_backend.py` snapshots these immutable
+metadata bytes on device during setup and changes their captured copies to DtoD
+using public CUDA graph APIs. Every later capture verifies the destination and
+exact bytes; unexpected metadata fails capture. This is a version-specific
+adapter, not a general guarantee that arbitrary cuDSS calls can be placed inside
+conditional loops. Graph regression tests verify full trajectory replay, backend
+agreement, and absence of HtoD/DtoH nodes. See NVIDIA's
+[conditional graph requirements](https://docs.nvidia.com/cuda/archive/12.8.1/cuda-c-programming-guide/index.html#conditional-node-body-graph-requirements).
+
+```bash
+# Optional cuDSS experiments; Warp-only simulation does not require this file.
+python -m pip install -r requirements-benchmark.txt
+python -m unittest -v test_waveguide test_integrators
+python benchmark_integrators.py --study screen
+python benchmark_integrators.py --study fine
+python report_integrators.py
+# A single reproducible case:
+python benchmark_integrators.py --case '{"h":0.02,"method":"midpoint","backend":"cg","dt_fs":0.02}' --out results/example
+```
+
+Benchmark processes execute serially. Each default case measures three complete
+240 fs trajectories, reports their median, and records setup/factorization,
+post-run device-memory allocation delta (not peak memory), residuals, and all
+configuration/source hashes. Timing includes source and port diagnostics. The
+requested 0.12 fs monitor cadence is rounded to an integer number of steps, so
+actual sample intervals vary; this can make short-run timings nonmonotonic in dt.
+The final readback and plotting are outside trajectory timing. Single precision
+is used for fields and solves; monitor summation uses double precision. Very small
+steps can accumulate factorization/roundoff bias despite small solve residuals.
