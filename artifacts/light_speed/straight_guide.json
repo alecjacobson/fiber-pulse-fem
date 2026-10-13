@@ -1,0 +1,164 @@
+[
+  {
+    "name": "straight_h080",
+    "h_um": 0.08,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 128145461.70375091,
+    "group_speed_m_s": 82831406.78514108,
+    "phase_relative_error": -0.1474639956375121,
+    "group_relative_error": -0.4285688581165912,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/resolution.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  },
+  {
+    "name": "straight_h060",
+    "h_um": 0.06,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 139553632.1606884,
+    "group_speed_m_s": 114694301.07159404,
+    "phase_relative_error": -0.07156683994324231,
+    "group_relative_error": -0.20875549537790172,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/resolution.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  },
+  {
+    "name": "straight_h040",
+    "h_um": 0.04,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 145829581.26201832,
+    "group_speed_m_s": 132330773.59089513,
+    "phase_relative_error": -0.02981372204664856,
+    "group_relative_error": -0.08708631189244809,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/resolution.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  },
+  {
+    "name": "straight_h030",
+    "h_um": 0.03,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 147875528.17036518,
+    "group_speed_m_s": 138050583.6295799,
+    "phase_relative_error": -0.01620228876458496,
+    "group_relative_error": -0.04762691226834148,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/resolution.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  },
+  {
+    "name": "straight_h020",
+    "h_um": 0.02,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 149245384.3540473,
+    "group_speed_m_s": 141924810.68173492,
+    "phase_relative_error": -0.007088803964885537,
+    "group_relative_error": -0.020899683138077774,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/resolution.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  },
+  {
+    "name": "straight_h015",
+    "h_um": 0.015,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 149707709.62073624,
+    "group_speed_m_s": 143242855.17394447,
+    "phase_relative_error": -0.0040130107971961815,
+    "group_relative_error": -0.011806855930758808,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/resolution.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  },
+  {
+    "name": "straight_h010",
+    "h_um": 0.01,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 150044170.86041534,
+    "group_speed_m_s": 144192924.49527928,
+    "phase_relative_error": -0.0017745755292973842,
+    "group_relative_error": -0.005252588434530137,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/resolution.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  },
+  {
+    "name": "straight_h007",
+    "h_um": 0.007,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 150177932.15889716,
+    "group_speed_m_s": 144572823.2511662,
+    "phase_relative_error": -0.0008846780531801546,
+    "group_relative_error": -0.002631771182933118,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/reference.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  },
+  {
+    "name": "straight_h005",
+    "h_um": 0.005,
+    "expected_phase_speed_m_s": 150310908.92117327,
+    "expected_group_speed_m_s": 144954309.82660982,
+    "phase_speed_m_s": 150244728.4995678,
+    "group_speed_m_s": 144761058.38665873,
+    "phase_relative_error": -0.00044029020967573107,
+    "group_relative_error": -0.0013331886453203934,
+    "effective_index": 1.994482370918391,
+    "group_index": 2.068185888081583,
+    "source_artifact": "artifacts/reference.json",
+    "source_sha256": {
+      "warp_waveguide.py": "0588c32083706747f7a611bf0bafd5cf7fbdb944897787aeb2d2caaab84e0751",
+      "mesh_waveguide.py": "27cd83506c56057507f5fa2269b7ca961872cc2e72d1034b53cfea84877fb6a3",
+      "analyze_waveguide.py": "ccf3c80a9714bcd9f9c3e10e6f2d7a0f0a678fedf3a923394140cc596485df40"
+    }
+  }
+]

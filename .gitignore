@@ -16,3 +16,7 @@ results/
 !artifacts/integrators/animation/*.png
 !artifacts/integrators/animation/*.mp4
 !artifacts/integrators/traces/*.npz
+
+# Reproducible physical-speed verification
+!artifacts/light_speed/*.png
+!artifacts/light_speed/*.npz

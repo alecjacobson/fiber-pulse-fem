@@ -3,6 +3,68 @@
 A graph-capturable GPU Maxwell solver for a visible-light pulse in a conforming,
 Bézier-shaped 2D slab waveguide. The original Python/MATLAB implementation is retained below.
 
+## Speed-of-light verification
+
+The simulation recovers the physical light speed with convergent discretization
+error. `C0 = 299792458 m/s`; coordinates are in µm and internal time is
+`tau = c0*t/(1 µm)`, so one time unit is **3.33564095198 fs**. In a uniform,
+nonmagnetic dielectric, the assembled equations give
+`n² * d²E/dtau² = Laplacian(E)`, hence speed `c0/n`.
+
+`check_light_speed.py` independently tests this using the production Warp FEM
+assembly, leapfrog kernels, and full-trajectory CUDA graph. It initializes a
+532 nm vacuum-wavelength Gaussian electric packet with **zero magnetic field and
+no source**. The packet splits into left/right waves; no source phase velocity or
+group delay is prescribed. A 24 × 0.16 µm triangular strip is uniform transversely,
+with natural side boundaries and absorbing x ends. The packet starts at x=8 µm;
+51 probes span x=12–16 µm. The enlarged domain keeps boundary returns outside the
+measurement window. Envelope-energy centroids give arrival-time slopes, and
+Fourier phase at the carrier gives phase speed. Probe spacing is small enough to
+unwrap the phase directly, without an analytic propagation-constant anchor.
+
+Twelve new runs cover h=40, 20, 10, 5 nm and n=1, 1.46, 2.04 at CFL=0.85.
+Both speed errors decrease approximately fourfold on halving h. At **h=5 nm**:
+
+| Medium | Expected envelope speed (m/s) | Measured (m/s) | Envelope error | Phase-speed error |
+|---|---:|---:|---:|---:|
+| Vacuum | 299,792,458 | 299,692,637 | −0.0333% | −0.0110% |
+| Uniform n=1.46 | 205,337,300 | 205,192,033 | −0.0707% | −0.0235% |
+| Uniform n=2.04 | 146,957,087 | 146,754,249 | −0.1380% | −0.0460% |
+| Straight slab TE₀ | 144,954,310 | 144,761,058 | −0.1333% | −0.0440% |
+
+The straight-guide row reuses the previous nine-resolution study, with its
+original provenance retained in `artifacts/light_speed/straight_guide.json`.
+Here `n_eff=1.99448237` gives phase speed **150,310,909 m/s**, whereas
+`n_g=d beta/d k0=2.06818589` gives envelope speed **144,954,310 m/s**.
+The measured group speed uses the arrival slope in the straight input lead.
+These differ from vacuum light speed for physical reasons. The model uses
+constant material indices, so its group-index correction includes waveguide
+dispersion but not material dispersion. Across a bend, path length, mode
+conversion, and pulse reshaping also affect arrival time; that delay alone is
+not a clean vacuum-speed test.
+
+Coarse meshes substantially slow the pulse numerically: at h=40 nm the uniform
+n=2.04 envelope error is −9.03%, versus −0.138% at 5 nm. Correct SI units do not
+remove numerical dispersion. These checks complement the integrator benchmark's
+phase and delay gates; the homogeneous experiment itself uses leapfrog.
+
+![Speed and arrival-time convergence](artifacts/light_speed/speed_check.png)
+
+[Animated measured envelopes](artifacts/light_speed/envelopes.gif),
+[raw measurements](artifacts/light_speed/measurements.json), and all twelve probe
+archives and graph descriptions are in `artifacts/light_speed/`. The animation
+compares envelopes at the same physical time, normalized separately by peak
+amplitude. **All 13 regressions pass**, including independent SI timing,
+source-free propagation/convergence, and device graph replay without host
+transfers. The homogeneous runs take about 0.10 s each at 5 nm on the L40,
+excluding setup; their thin uniform strips are much cheaper than the bent guide.
+
+```bash
+python check_light_speed.py
+python report_light_speed.py
+python -m unittest -v test_waveguide test_integrators test_light_speed
+```
+
 ## Integrator benchmark results
 
 The `integrator-benchmarks` branch compares **52 configurations and 142 full
